@@ -16,28 +16,12 @@ type APSniffer struct {
 	APList map[string][]net.HardwareAddr
 }
 
-func (s APSniffer) newHandle() (*pcap.Handle, error) {
-	ih, err := pcap.NewInactiveHandle(s.iface)
-	if err != nil {
-		return nil, err
-	}
-	err = ih.SetPromisc(true)
-	if err != nil {
-		return nil, err
-	}
-	err = ih.SetRFMon(true)
-	if err != nil {
-		return nil, err
-	}
-	return ih.Activate()
-}
-
-func NewSniffer(iface string) (*APSniffer, error) {
+func NewAPSniffer(iface string) (*APSniffer, error) {
 	s := &APSniffer{
 		iface:  iface,
 		APList: make(map[string][]net.HardwareAddr),
 	}
-	h, err := s.newHandle()
+	h, err := newHandle(s.iface)
 	if err != nil {
 		return nil, err
 	}
@@ -120,11 +104,3 @@ func (s *APSniffer) handlePacket(packet gopacket.Packet) {
 	}
 }
 
-func contains(b []net.HardwareAddr, bssid net.HardwareAddr) bool {
-	for _, v := range b {
-		if v.String() == bssid.String() {
-			return true
-		}
-	}
-	return false
-}
