@@ -104,14 +104,6 @@ func showAPMenu(ssid string) {
 	}
 }
 
-func wait(stop chan struct{}) {
-	fmt.Println("Press the Enter Key to Stop Sniff!")
-	_, _ = fmt.Scanln()
-	apSniffer.Stop <- struct{}{}
-	stop <- struct{}{}
-	return
-}
-
 func main() {
 	for {
 		goterm.Clear()

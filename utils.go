@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"net"
@@ -48,3 +49,11 @@ func getFrameDirection(dot11 *layers.Dot11) FrameDirection {
 		return OTHER
 	}
  }
+
+func wait(stop chan struct{}) {
+	fmt.Println("Press the Enter Key to Stop Sniff!")
+	_, _ = fmt.Scanln()
+	apSniffer.Stop <- struct{}{}
+	stop <- struct{}{}
+	return
+}
