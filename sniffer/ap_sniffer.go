@@ -14,13 +14,12 @@ type APSniffer struct {
 	Stop   chan struct{}
 }
 
-func NewAPSniffer(iface string) (*APSniffer, error) {
-	s := &APSniffer{
+func NewAPSniffer(iface string) *APSniffer {
+	return &APSniffer{
 		APList: make(map[string][]net.HardwareAddr),
 		iface:  iface,
 		Stop:   make(chan struct{}),
 	}
-	return s, nil
 }
 
 func (s *APSniffer) Sniff() error {
@@ -52,6 +51,10 @@ func (s *APSniffer) handle(handle *pcap.Handle) {
 }
 
 func (s *APSniffer) handlePacket(packet gopacket.Packet) {
+	fail := packet.Layer(gopacket.LayerTypeDecodeFailure)
+	if fail != nil {
+		return
+	}
 	dot11layer := packet.Layer(layers.LayerTypeDot11)
 	if dot11layer == nil {
 		return
