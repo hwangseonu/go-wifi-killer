@@ -5,8 +5,6 @@ import (
 	"net"
 )
 
-type FrameDirection uint8
-
 func newHandle(iface string, promisc, rfmon bool) (*pcap.Handle, error) {
 	ih, err := pcap.NewInactiveHandle(iface)
 	if err != nil {
