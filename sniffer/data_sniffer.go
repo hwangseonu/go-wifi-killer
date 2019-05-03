@@ -8,16 +8,20 @@ import (
 )
 
 type DataSniffer struct {
-	Data    map[string]net.HardwareAddr
+	Sniffed map[string][]net.HardwareAddr
 	Targets []net.HardwareAddr
+	Stop    chan struct{}
 	iface   string
+	myMac   net.HardwareAddr
 }
 
-func NewDataSniffer(iface string, targets []net.HardwareAddr) *DataSniffer {
+func NewDataSniffer(iface string, my net.HardwareAddr, targets []net.HardwareAddr) *DataSniffer {
 	return &DataSniffer{
-		Data:    make(map[string]net.HardwareAddr, 0),
+		Sniffed: make(map[string][]net.HardwareAddr),
 		Targets: targets,
+		Stop:    make(chan struct{}),
 		iface:   iface,
+		myMac:   my,
 	}
 }
 
@@ -36,7 +40,17 @@ func (s *DataSniffer) Sniff() error {
 }
 
 func (s *DataSniffer) handle(handle *pcap.Handle) {
-
+	src := gopacket.NewPacketSource(handle, handle.LinkType())
+	pk := src.Packets()
+	for {
+		var packet gopacket.Packet
+		select {
+		case <-s.Stop:
+			return
+		case packet = <-pk:
+			s.handlePacket(packet)
+		}
+	}
 }
 
 func (s *DataSniffer) handlePacket(packet gopacket.Packet) {
@@ -55,21 +69,40 @@ func (s *DataSniffer) handlePacket(packet gopacket.Packet) {
 	}
 	fd := getFrameDirection(dot11)
 	for _, bssid := range s.Targets {
+		str := bssid.String()
 		if !isTargetAssociated(fd, bssid.String(), dot11) {
 			continue
 		}
 		switch fd {
 		case ToAp:
-			//TODO
+			if dot11.Address2.String() != s.myMac.String() && !contains(s.Sniffed[str], dot11.Address2) {
+				s.Sniffed[str] = append(s.Sniffed[str], dot11.Address2)
+			}
+			if dot11.Address3.String() != s.myMac.String() && !contains(s.Sniffed[str], dot11.Address3) {
+				s.Sniffed[str] = append(s.Sniffed[str], dot11.Address3)
+			}
 			break
 		case FromAp:
-			//TODO
+			if dot11.Address1.String() != s.myMac.String() && !contains(s.Sniffed[str], dot11.Address1) {
+				s.Sniffed[str] = append(s.Sniffed[str], dot11.Address1)
+			}
+			if dot11.Address3.String() != s.myMac.String() && !contains(s.Sniffed[str], dot11.Address3) {
+				s.Sniffed[str] = append(s.Sniffed[str], dot11.Address3)
+			}
 			break
 		}
 	}
 }
 
-func isTargetAssociated(d FrameDirection, bssid string, dot11 *layers.Dot11,) bool {
+type FrameDirection uint8
+
+const (
+	ToAp   = FrameDirection(1)
+	FromAp = FrameDirection(2)
+	Other  = FrameDirection(3)
+)
+
+func isTargetAssociated(d FrameDirection, bssid string, dot11 *layers.Dot11, ) bool {
 	switch d {
 	case ToAp:
 		return dot11.Address1.String() == bssid
@@ -79,12 +112,6 @@ func isTargetAssociated(d FrameDirection, bssid string, dot11 *layers.Dot11,) bo
 		return false
 	}
 }
-
-const (
-	ToAp   = FrameDirection(1)
-	FromAp = FrameDirection(2)
-	Other  = FrameDirection(3)
-)
 
 func getFrameDirection(dot11 *layers.Dot11) FrameDirection {
 	switch {
