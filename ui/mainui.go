@@ -2,20 +2,14 @@ package ui
 
 import (
 	"fmt"
-	"github.com/hwangseonu/wifi-killer/sniffer"
 	"github.com/manifoldco/promptui"
 	"log"
 	"net"
 )
 
-var iface string
-var s *sniffer.APSniffer
-
 func ShowMainMenu() {
-	iface = selectNIC("Select Interface to sniff")
-	s = sniffer.NewAPSniffer(iface)
 	for {
-		menu := []string{"Scan AP", "Print AP list", "Exit"}
+		menu := []string{"Scan AP", "Print AP list", "Select AP", "Exit"}
 		prompt := promptui.Select{Label: "Select Menu", Items: menu}
 		i, _, err := prompt.Run()
 		if err != nil {
@@ -26,11 +20,12 @@ func ShowMainMenu() {
 			scanAP()
 			break
 		case 1:
-			fmt.Printf("\033[2J") //Clear terminal
-			fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
-			s.Print()
+			printAPList()
 			break
 		case 2:
+			ShowAPMenu()
+			break
+		case 3:
 			println("Bye")
 			return
 		}
@@ -39,8 +34,16 @@ func ShowMainMenu() {
 
 func scanAP() {
 	stop := make(chan struct{})
-	s.APList = make(map[string][]net.HardwareAddr)
-	go s.Sniff()
-	go printAll(s, stop)
-	pause(stop, s.Stop)
+	apSniffer.APList = make(map[string][]net.HardwareAddr)
+	go apSniffer.Sniff()
+	go printAll(apSniffer, stop)
+	pause("Press the Enter to stop scan ap", stop, apSniffer.Stop)
 }
+
+func printAPList() {
+	fmt.Printf("\033[2J")   //Clear terminal
+	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
+	apSniffer.Print()
+	pause("Press the Enter to next step")
+}
+

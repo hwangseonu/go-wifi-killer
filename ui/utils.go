@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"github.com/buger/goterm"
 	"github.com/hwangseonu/wifi-killer/sniffer"
 	"github.com/manifoldco/promptui"
 	"log"
@@ -19,21 +18,23 @@ func printAll(s sniffer.Sniffer, stop chan struct{}) {
 			fmt.Printf("\033[2J") //Clear terminal
 			fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 			s.Print()
-			print("Press the Enter key to stop scan ap!")
+			print("Press the Enter key to stop scan apSniffer!")
 			time.Sleep(3 * time.Second)
 		}
 	}
 }
 
-func pause(ch ...chan struct{}) {
+func pause(msg string, ch ...chan struct{}) {
+	println("Press the Enter to next step")
 	_, _ = fmt.Scanln()
 	for _, c := range ch {
 		c <- struct{}{}
 	}
-	goterm.Clear()
+	fmt.Printf("\033[2J") //Clear terminal
+	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 }
 
-func selectNIC(msg string) string {
+func selectInterface(msg string) string {
 	items := make([]string, 0)
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -43,9 +44,9 @@ func selectNIC(msg string) string {
 		items = append(items, v.Name)
 	}
 	prompt := promptui.Select{Label: msg, Items: items}
-	_, s, err := prompt.Run()
+	_, i, err := prompt.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return s
+	return i
 }
