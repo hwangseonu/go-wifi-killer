@@ -1,6 +1,7 @@
 package sniffer
 
 import (
+	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -91,6 +92,18 @@ func (s *DataSniffer) handlePacket(packet gopacket.Packet) {
 			}
 			break
 		}
+	}
+}
+
+func (s *DataSniffer) Print() {
+	i := 1
+	for k, sniffed := range s.Sniffed {
+		fmt.Printf("%d. BSSID: %s\n", i, k)
+		i++
+		for _, v := range sniffed {
+			fmt.Printf("\t%s\n", v)
+		}
+		println()
 	}
 }
 
