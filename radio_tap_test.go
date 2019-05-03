@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"hash/crc32"
 	"net"
 	"testing"
 )
@@ -33,32 +35,53 @@ func dump(b []byte) {
 func makePacket() []byte {
 	radio := RadioTap()
 	dot11 := Dot11()
-	buf := gopacket.NewSerializeBuffer()
-	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
-	_ = gopacket.SerializeLayers(buf, opts, &radio, &dot11)
-	return buf.Bytes()
+	deauth := Dot11Deauth()
+	b := make([]byte, 0)
+	b = append(b,radio...)
+	b = append(b, dot11...)
+	b = append(b, deauth...)
+
+	realloc := make([]byte, len(b)+4)
+	copy(realloc[0:], b)
+	h := crc32.NewIEEE()
+	_, _ = h.Write(append(dot11, deauth...))
+	binary.LittleEndian.PutUint32(realloc[len(b):], h.Sum32())
+	b = realloc
+
+	return b
 }
 
-func RadioTap() layers.RadioTap {
+func RadioTap() []byte {
 	radio := layers.RadioTap{}
 	radio.Present = 0x482b
 	radio.Flags = 0x10
 	radio.ChannelFrequency = channelToMhz(1)
 	radio.ChannelFlags = layers.RadioTapChannelFlags(0xa0)
 	radio.DBMAntennaSignal = -50
-	return radio
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+	_ = gopacket.SerializeLayers(buf, opts, &radio)
+	return buf.Bytes()
 }
 
-
-func Dot11() layers.Dot11 {
-
-
+func Dot11() []byte {
 	dot11 := layers.Dot11{}
 	dot11.Type = layers.Dot11TypeMgmtDeauthentication
 	dot11.Address1 = hwAddr(0xaa)
 	dot11.Address2 = hwAddr(0xbb)
 	dot11.Address3 = hwAddr(0xcc)
-	return dot11
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+	_ = gopacket.SerializeLayers(buf, opts, &dot11)
+	return buf.Bytes()
+}
+
+func Dot11Deauth() []byte {
+	deauth := layers.Dot11MgmtDeauthentication{}
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+	_ = gopacket.SerializeLayers(buf, opts, &deauth)
+	return buf.Bytes()
 }
 
 func hwAddr(d uint8) net.HardwareAddr {
