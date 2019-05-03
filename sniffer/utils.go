@@ -1,6 +1,7 @@
 package sniffer
 
 import (
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"net"
 )
@@ -28,4 +29,8 @@ func contains(list []net.HardwareAddr, addr net.HardwareAddr) bool {
 		}
 	}
 	return false
+}
+
+func channelToMhz(ch int) layers.RadioTapChannelFrequency {
+	return layers.RadioTapChannelFrequency(2407 + (ch * 5))
 }
