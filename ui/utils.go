@@ -1,9 +1,12 @@
-package main
+package ui
 
 import (
 	"fmt"
 	"github.com/buger/goterm"
 	"github.com/hwangseonu/wifi-killer/sniffer"
+	"github.com/manifoldco/promptui"
+	"log"
+	"net"
 	"time"
 )
 
@@ -28,4 +31,21 @@ func pause(ch ...chan struct{}) {
 		c <- struct{}{}
 	}
 	goterm.Clear()
+}
+
+func selectNIC(msg string) string {
+	items := make([]string, 0)
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, v := range ifaces {
+		items = append(items, v.Name)
+	}
+	prompt := promptui.Select{Label: msg, Items: items}
+	_, s, err := prompt.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return s
 }
