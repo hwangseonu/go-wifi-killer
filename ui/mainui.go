@@ -8,6 +8,8 @@ import (
 )
 
 func ShowMainMenu() {
+	fmt.Printf("\033[2J") //Clear terminal
+	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 	for {
 		menu := []string{"Scan AP", "Print AP list", "Select AP", "Exit"}
 		prompt := promptui.Select{Label: "Select Menu", Items: menu}
@@ -36,14 +38,16 @@ func scanAP() {
 	stop := make(chan struct{})
 	apSniffer.APList = make(map[string][]net.HardwareAddr)
 	go apSniffer.Sniff()
-	go printAll(apSniffer, stop)
-	pause("Press the Enter to stop scan ap", stop, apSniffer.Stop)
+	go printAll("Press the Enter to stop scan ap", apSniffer, stop)
+	println("Press the Enter to stop scan ap")
+	pause(stop, apSniffer.Stop)
 }
 
 func printAPList() {
 	fmt.Printf("\033[2J")   //Clear terminal
 	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 	apSniffer.Print()
-	pause("Press the Enter to next step")
+	println("Press the Enter to next step")
+	pause()
 }
 
