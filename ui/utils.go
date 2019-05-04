@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func printAll(s sniffer.Sniffer, stop chan struct{}) {
+func printAll(msg string, s sniffer.Sniffer, stop chan struct{}) {
 	for {
 		select {
 		case <-stop:
@@ -18,14 +18,13 @@ func printAll(s sniffer.Sniffer, stop chan struct{}) {
 			fmt.Printf("\033[2J") //Clear terminal
 			fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 			s.Print()
-			print("Press the Enter key to stop scan apSniffer!")
+			println(msg)
 			time.Sleep(3 * time.Second)
 		}
 	}
 }
 
-func pause(msg string, ch ...chan struct{}) {
-	println("Press the Enter to next step")
+func pause(ch ...chan struct{}) {
 	_, _ = fmt.Scanln()
 	for _, c := range ch {
 		c <- struct{}{}

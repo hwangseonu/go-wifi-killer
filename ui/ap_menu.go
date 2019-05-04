@@ -9,6 +9,8 @@ import (
 )
 
 func ShowAPMenu() {
+	fmt.Printf("\033[2J") //Clear terminal
+	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 	ap := selectAP()
 	except, err := net.InterfaceByName(selectInterface("Select Interface to use internet"))
 	if err != nil {
@@ -16,7 +18,7 @@ func ShowAPMenu() {
 	}
 	dataSniffer = sniffer.NewDataSniffer(iface, except.HardwareAddr, apSniffer.APList[ap])
 
-	menu := []string{"Print Targets BssID", "Exit"}
+	menu := []string{"Print Targets BssID", "Sniff Data", "Exit"}
 	prompt := promptui.Select{Label: "Select Menu", Items: menu}
 
 	for {
@@ -29,6 +31,9 @@ func ShowAPMenu() {
 			printBssID()
 			break
 		case 1:
+			sniffData()
+			break
+		case 2:
 			return
 		}
 	}
@@ -52,6 +57,16 @@ func printBssID() {
 	fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 	for i, v := range dataSniffer.Targets {
 		fmt.Printf("%d. %s\n", i+1, v.String())
-		pause("Press the Enter to next step")
 	}
+	println("Press the Enter to next step")
+	pause()
+}
+
+func sniffData() {
+	stop := make(chan struct{})
+	dataSniffer.Sniffed = make(map[string][]net.HardwareAddr)
+	go dataSniffer.Sniff()
+	go printAll("Press the Enter to stop sniff data", dataSniffer, stop)
+	println("Press the Enter to stop sniff data")
+	pause(stop, dataSniffer.StopSniff)
 }

@@ -19,11 +19,12 @@ type DataSniffer struct {
 
 func NewDataSniffer(iface string, my net.HardwareAddr, targets []net.HardwareAddr) *DataSniffer {
 	return &DataSniffer{
-		Sniffed:   make(map[string][]net.HardwareAddr),
-		Targets:   targets,
-		StopSniff: make(chan struct{}),
-		iface:     iface,
-		myMac:     my,
+		Sniffed:    make(map[string][]net.HardwareAddr),
+		Targets:    targets,
+		StopSniff:  make(chan struct{}),
+		StopDeauth: make(chan struct{}),
+		iface:      iface,
+		myMac:      my,
 	}
 }
 
@@ -117,9 +118,14 @@ func (s *DataSniffer) SendDeauth() error {
 	for {
 		select {
 		case <-s.StopDeauth:
+			fmt.Printf("\033[2J")   //Clear terminal
+			fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
 			return nil
 		default:
 			for _, bssid := range s.Targets {
+				fmt.Printf("\033[2J")   //Clear terminal
+				fmt.Printf("\033[1;1H") //Goto 1, 1 of terminal
+				fmt.Printf("send to %s...\n", bssid.String())
 				for _, t := range s.Sniffed[bssid.String()] {
 					err = sendDeauth(h, t, bssid, bssid)
 					if err == nil {
