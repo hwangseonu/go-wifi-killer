@@ -100,12 +100,8 @@ func (s *DataSniffer) handlePacket(packet gopacket.Packet) {
 func (s *DataSniffer) Print() {
 	i := 1
 	for k, sniffed := range s.Sniffed {
-		fmt.Printf("%d. BSSID: %s\n", i, k)
+		fmt.Printf("%d. BSSID: %s, Sniffed: %d\n", i, k, len(sniffed))
 		i++
-		for _, v := range sniffed {
-			fmt.Printf("\t%s\n", v)
-		}
-		println()
 	}
 }
 
