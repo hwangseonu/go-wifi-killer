@@ -18,7 +18,7 @@ func ShowAPMenu() {
 	}
 	dataSniffer = sniffer.NewDataSniffer(iface, except.HardwareAddr, apSniffer.APList[ap])
 
-	menu := []string{"Print Targets BssID", "Sniff Data", "Exit"}
+	menu := []string{"Print Targets BssID", "Sniff Data", "Remove All Data", "Send Deauth", "Exit"}
 	prompt := promptui.Select{Label: "Select Menu", Items: menu}
 
 	for {
@@ -34,6 +34,12 @@ func ShowAPMenu() {
 			sniffData()
 			break
 		case 2:
+			removeAllData()
+			break
+		case 3:
+			sendDeauth()
+			break
+		case 4:
 			return
 		}
 	}
@@ -64,9 +70,21 @@ func printBssID() {
 
 func sniffData() {
 	stop := make(chan struct{})
-	dataSniffer.Sniffed = make(map[string][]net.HardwareAddr)
 	go dataSniffer.Sniff()
 	go printAll("Press the Enter to stop sniff data", dataSniffer, stop)
 	println("Press the Enter to stop sniff data")
 	pause(stop, dataSniffer.StopSniff)
+}
+
+func removeAllData() {
+	dataSniffer.Sniffed = make(map[string][]net.HardwareAddr)
+	println("removed all data")
+	println("Press the Enter to next step")
+	pause()
+}
+
+func sendDeauth() {
+	go dataSniffer.Sniff()
+	println("Press the Enter to stop send deauth")
+	pause(dataSniffer.StopDeauth)
 }
